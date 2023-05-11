@@ -15,8 +15,10 @@ import datetime
 from base64 import b64decode
 from PIL import Image
 import pygame
-from pygame.display import FULLSCREEN
-from pygame.event import QUIT
+# pylint: disable=no-name-in-module
+from pygame import FULLSCREEN
+from pygame import QUIT
+# pylint: enable=no-name-in-module
 from stability_sdk import client
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 import openai

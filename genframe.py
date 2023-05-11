@@ -15,10 +15,6 @@ import datetime
 from base64 import b64decode
 from PIL import Image
 import pygame
-# pylint: disable=no-name-in-module
-from pygame import FULLSCREEN
-from pygame import QUIT
-# pylint: enable=no-name-in-module
 from stability_sdk import client
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 import openai
@@ -207,7 +203,7 @@ def main():
     screen_width = info_object.current_w
     screen_height = info_object.current_h
 
-    flags = FULLSCREEN
+    flags = pygame.FULLSCREEN
     window_surface = pygame.display.set_mode((screen_width, screen_height), flags)
     pygame.mouse.set_visible(False)
 
@@ -222,7 +218,7 @@ def main():
 
     while True:
         for event in pygame.event.get():
-            if event.type == QUIT:
+            if event.type == pygame.QUIT:
                 # pylint: disable=no-member
                 pygame.quit()
                 # pylint: enable=no-member

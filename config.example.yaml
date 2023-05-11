@@ -1,0 +1,11 @@
+api:
+  stability_host: grpc.stability.ai:443
+  stability_key: sk-putyourstablediffusionkeyhere
+  openai_key: sk-putyouropenaiapikeyhere
+settings:
+  # How often, in minutes, you want the picture to change
+  change_time: 10
+  # Hour of the day to start generating new images (24 hour format, inclusive)
+  start_hour: 8
+  # Hour of the day to stop generating new images (24 hour format, exclusive)
+  end_hour: 17

@@ -12,37 +12,37 @@ import io
 import random
 import warnings
 import datetime
-from base64 import b64decode
 from PIL import Image
 import pygame
 from stability_sdk import client
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 import openai
+import requests
 import yaml
 
 landscape_types = [
-    "mountains",
-    "hills",
+    "mountainous",
+    "hilly",
     "plains",
-    "plateau",
+    "plateau filled",
     "canyon",
-    "lakes",
-    "stream",
-    "river",
+    "lake filled",
+    "stream split",
+    "river runs through a ",
     "forest",
     "ocean",
-    "field",
+    "agricultural field",
     "urban",
     "city",
     "street",
     "desert",
     "backcountry", # DANG
     "galactic", # DANG
-    "fjord", # DANG
-    "glacier", # DANG
+    "fjord filled", # DANG
+    "glacier covered", # DANG
     "scabland", # DANG
-    "jungle", # DANG
-    "dunes"
+    "dense jungle", # DANG
+    "dune filled"
 ]
 
 timeofday = [
@@ -62,7 +62,7 @@ weather = [
     "raining",
     "snowy",
     "cloudy",
-    "blizzard",
+    "blizzarding",
     "hot",
     "cold",
     "humid",
@@ -90,12 +90,12 @@ style = [
 
 def get_prompt():
     """Generate the prompt based on the lists above"""
-    prompt_list = ["landscape"]
-    prompt_list.append(random.choice(landscape_types))
-    prompt_list.append(random.choice(timeofday))
-    prompt_list.append(random.choice(weather))
-    prompt_list.append(random.choice(style))
-    return " ".join(prompt_list)
+    #prompt_list = ["landscape"]
+    landscape_type = random.choice(landscape_types)
+    timeofday_type = random.choice(timeofday)
+    weather_type = random.choice(weather)
+    style_type = random.choice(style)
+    return f"A {landscape_type} landscape during a {weather_type} {timeofday_type} in the style of {style_type}"
 
 def size_image(img_edit, prompt, gen_width, gen_height, screen_width, screen_height):
     """Resize/crop the image to fit the resolution of the screen"""
@@ -118,7 +118,7 @@ def size_image(img_edit, prompt, gen_width, gen_height, screen_width, screen_hei
 
     #resize to calculated width/height from above
     size = (resize_width, resize_height)
-    img_edit.resize(size, Image.LANCZOS)
+    img_edit.resize(size, Image.Resampling.BICUBIC)
 
     w_diff_center = (resize_width - screen_width)/2
     h_diff_center = (resize_height - screen_height)/2
@@ -141,12 +141,14 @@ def generate_openai(screen_width, screen_height):
     image_response = openai.Image.create(
         prompt=prompt,
         n=1,
-        size=str(gen_width)+"x"+str(gen_height),
-        response_format="b64_json"
+        size=str(gen_width)+"x"+str(gen_height)
     )
 
+    image_url = image_response["data"][0]["url"]
+    image_binary = requests.get(image_url, timeout=20).content
+
     # Make our image into an object
-    img_edit = Image.open(io.BytesIO(b64decode(image_response.data[0].b64_json)))
+    img_edit = Image.open(io.BytesIO(image_binary))
 
     return size_image(img_edit, prompt, gen_width, gen_height, screen_width, screen_height)
 
@@ -193,7 +195,10 @@ def main():
         engine="stable-diffusion-xl-beta-v2-2-2", # Set the engine
     )
 
+    openai.api_base = "https://cabattag-openai.openai.azure.com/"
+    openai.api_version = "2023-06-01-preview"
     openai.api_key = config['api']['openai_key']
+    openai.api_type = 'azure'
     # Properly handling pygame with pylint
     # pylint: disable=no-member
     pygame.init()
@@ -208,7 +213,7 @@ def main():
     pygame.mouse.set_visible(False)
 
     new_image = True
-    use_openai = False
+    use_openai = True
     loop_count = 0
 
     change_picture = config['settings']['change_time'] # minutes

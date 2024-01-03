@@ -2,6 +2,8 @@ api:
   stability_host: grpc.stability.ai:443
   stability_key: sk-putyourstablediffusionkeyhere
   openai_key: sk-putyouropenaiapikeyhere
+  azure_openai_endpoint: yourazureopenaiendpointurl
+  azure_openai_deployment_name: dalle3deploymentname
 settings:
   # How often, in minutes, you want the picture to change
   change_time: 10

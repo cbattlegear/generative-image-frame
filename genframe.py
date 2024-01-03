@@ -7,18 +7,20 @@ API keys from their respective services and put them into a config.yaml
 #TODO Figure out out to turn script into Debian/Ubuntu service
 #TODO Image uploads to blob/delete
 #TODO Add the ability to quickly add categories/types of images
+#TODO Error handling....
 
 import io
 import random
 import warnings
 import datetime
-from PIL import Image
+import json
 import pygame
-from stability_sdk import client
-import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
-import openai
 import requests
 import yaml
+from PIL import Image
+from stability_sdk import client
+import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
+from openai import AzureOpenAI
 
 landscape_types = [
     "mountainous",
@@ -132,19 +134,22 @@ def size_image(img_edit, prompt, gen_width, gen_height, screen_width, screen_hei
         f"images/{int(datetime.datetime.now().timestamp())}-{prompt.replace(' ', '-')}.png")
     return pygame.image.frombytes(img_save.tobytes(), (screen_width, screen_height), "RGB")
 
-def generate_openai(screen_width, screen_height):
-    """Generate an image with OpenAI DALL-E 2 APIs"""
-    gen_width = 1024
-    gen_height = 1024
+def generate_openai(screen_width, screen_height, openai_client, deployment_name):
+    """Generate an image with OpenAI DALL-E 3 APIs"""
+    gen_width=1024
+    gen_height=1024
+
     prompt = get_prompt()
 
-    image_response = openai.Image.create(
+    image_response = openai_client.images.generate(
         prompt=prompt,
         n=1,
-        size=str(gen_width)+"x"+str(gen_height)
+        quality="hd",
+        style="vivid",
+        model=deployment_name
     )
 
-    image_url = image_response["data"][0]["url"]
+    image_url = json.loads(image_response.model_dump_json())["data"][0]["url"]
     image_binary = requests.get(image_url, timeout=20).content
 
     # Make our image into an object
@@ -195,10 +200,11 @@ def main():
         engine="stable-diffusion-xl-beta-v2-2-2", # Set the engine
     )
 
-    openai.api_base = "https://cabattag-openai.openai.azure.com/"
-    openai.api_version = "2023-06-01-preview"
-    openai.api_key = config['api']['openai_key']
-    openai.api_type = 'azure'
+    openai_client = AzureOpenAI(
+        api_version = "2023-12-01-preview",
+        azure_endpoint = config['api']['azure_openai_endpoint'],
+        api_key = config['api']['openai_key']
+    )
     # Properly handling pygame with pylint
     # pylint: disable=no-member
     pygame.init()
@@ -229,7 +235,7 @@ def main():
                 # pylint: enable=no-member
         if new_image:
             if use_openai:
-                img_display = generate_openai(screen_width, screen_height)
+                img_display = generate_openai(screen_width, screen_height, openai_client, config['api']['azure_openai_deployment_name'])
                 use_openai = False
             else:
                 img_display = generate_stable_diff(screen_width, screen_height, stability_api)
@@ -242,8 +248,8 @@ def main():
             if loop_count >= (change_picture * 60):
                 current_time = datetime.datetime.now()
                 if(current_time.hour >= start_time and current_time.hour < end_time):
-                    pygame.transform.gaussian_blur(window_surface, 20, dest_surface=window_surface)
-                    pygame.display.update()
+                    #pygame.transform.gaussian_blur(window_surface, 20, dest_surface=window_surface)
+                    #pygame.display.update()
                     new_image = True
                 loop_count = 0
             else:
